@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,11 @@ type bingo struct {
 	won    bool
 	size   int
 	lines  [][]int
+}
+
+type bingoresult struct {
+	round int
+	score int
 }
 
 func newBingo(fields []int, size int) *bingo {
@@ -61,8 +67,19 @@ func (board bingo) calculateScore(drawnTillNow []int) int {
 	return score * drawnTillNow[len(drawnTillNow)-1]
 }
 
+func (board bingo) playBoard(drawn []int, c chan bingoresult, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := range drawn {
+		alreadyDrawn := drawn[:i+1]
+		board.checkForBingo(alreadyDrawn)
+		if board.won {
+			c <- bingoresult{i, board.calculateScore(alreadyDrawn)}
+			return
+		}
+	}
+}
+
 func solveOne(boards []*bingo, drawn []int) int {
-	start := time.Now()
 	for i := range drawn {
 		for _, board := range boards {
 			slice := drawn[:i+1]
@@ -73,32 +90,29 @@ func solveOne(boards []*bingo, drawn []int) int {
 			}
 		}
 	}
-	elapsed := time.Since(start)
-	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/float64(time.Millisecond))
 	return 0
 }
 
 func solveTwo(boards []*bingo, drawn []int) int {
-	start := time.Now()
-	winners := 0
-	for i := range drawn {
-		for _, board := range boards {
-			if !board.won {
-				slice := drawn[:i+1]
-				board.checkForBingo(slice)
-				if board.won {
-					winners++
-					if winners == len(boards) {
-						return board.calculateScore(slice)
-					}
-				}
-			}
+	resultChannel := make(chan bingoresult)
+	var wg sync.WaitGroup
+
+	for _, board := range boards {
+		wg.Add(1)
+		go board.playBoard(drawn, resultChannel, &wg)
+	}
+	go func() {
+		wg.Wait()
+		close(resultChannel)
+	}()
+
+	var last bingoresult
+	for result := range resultChannel {
+		if result.round > last.round {
+			last = result
 		}
 	}
-
-	elapsed := time.Since(start)
-	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/1_000_000)
-	return 0
+	return last.score
 }
 
 func Solve() {
@@ -124,6 +138,12 @@ func Solve() {
 		boards[i] = newBingo(fields, 5)
 	}
 
+	start := time.Now()
 	fmt.Println("Part 1: ", solveOne(boards, drawn))
+	elapsed := time.Since(start)
+	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/1_000_000)
+
 	fmt.Println("Part 2: ", solveTwo(boards, drawn))
+	elapsed = time.Since(start)
+	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/1_000_000)
 }

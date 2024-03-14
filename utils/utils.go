@@ -58,3 +58,15 @@ func SumSlice(slice []int) int {
 	}
 	return acc
 }
+
+func Map[T any](strings []string, converter func(string) (T, error)) ([]T, error) {
+	result := make([]T, len(strings))
+	for i, str := range strings {
+		target, err := converter(str)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = target
+	}
+	return result, nil
+}
