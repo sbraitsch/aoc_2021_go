@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func ReadToLines(path string) ([]string, error) {
@@ -49,6 +50,29 @@ func ReadToInt(path string) ([]int, error) {
 	}
 
 	return lines, nil
+}
+
+func ReadSingleLineToIntSlice(path string) ([]int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+	}
+
+	defer file.Close()
+
+	var numbers []int
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		values := strings.Split(line, ",")
+		numbers, _ = Map(values, strconv.Atoi)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("Error reading file", err)
+	}
+
+	return numbers, nil
 }
 
 func SumSlice(slice []int) int {

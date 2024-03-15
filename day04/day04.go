@@ -142,7 +142,7 @@ func Solve() {
 	fmt.Println("Part 1: ", solveOne(boards, drawn))
 	elapsed := time.Since(start)
 	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/1_000_000)
-
+	start = time.Now()
 	fmt.Println("Part 2: ", solveTwo(boards, drawn))
 	elapsed = time.Since(start)
 	fmt.Printf("Function execution time: %.2f ms\n", float64(elapsed.Nanoseconds())/1_000_000)
